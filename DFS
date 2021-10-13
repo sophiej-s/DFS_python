@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import numpy as np
+import networkx as nx  #for  plotting the graph
+import matplotlib.pyplot as plt
+
+
+#helper functions (HFs) to define stack operations
+def push_stack_list(stack_list, value):
+    stack_list.append(value)
+    return stack_list
+
+
+def check_empty_stack_list(stack_list):
+    if len(stack_list)==0:
+        return True
+    else:
+        return False
+
+ 
+def pop_stack_list(stack_list):
+    if check_empty_stack_list(stack_list)==False:
+        popped=stack_list.pop()
+    else:
+         print("Cannot pop from an emtpy stack")
+    return stack_list, popped
+
+#--------------------------------------------
+#HF to see if the edge is visited / for DFS
+def check_ifVisited(visited_list, value):
+    if value in visited_list:
+        return True
+    else:
+        return False
+
+#--------------------------------------------
+#HF for user input of the graph
+def isInt(value):
+  try:
+    int(value)
+    return True
+  except ValueError:
+    return False
+
+
+#HF for user input of num of edges
+def one_input():
+    user_i=input("Enter the number of NODES in the graph and press ENTER:  ")
+    if isInt(user_i)==True:
+        return True, int(user_i)
+    else:
+        return  False, -100
+
+
+#HF multiple-part  user input separated by commas/ edges for one node
+def mult_commaSeparated_input(i, Nnodes):
+    connected_nodes=[]
+    banner="For node {:d}".format(i) + ":   enter which other nodes (i.e., 1,2,3...N) it is connected to, separate these with a COMMA. When done hit ENTER:  "
+    user_i=input(banner)
+    user_i_split=user_i.split(',')
+    for  idx, val in enumerate(user_i_split):
+        if isInt(val)==True and int(val)>=1 and int(val)<=Nnodes:
+            connected_nodes+=[int(val)]
+            
+    print("for {:d}".format(i), " connected nodes are : ", connected_nodes)        
+    return connected_nodes  
+
+
+
+
+#HF to build an adjacency matrix
+def build_adj_matrix():
+    status=False
+    Nnodes=-10
+    while status==False or Nnodes<=1:
+        status, Nnodes=one_input()
+    
+    adj_matrix=[]
+    adj_matrix=np.zeros( (Nnodes, Nnodes), dtype=int)
+    
+    for i in range(1,Nnodes+1):  #i = row
+        connected_nodes=mult_commaSeparated_input(i, Nnodes) #connected_nodes=col
+        
+            
+        for  idx, val in enumerate(connected_nodes):
+             adj_matrix[i-1][val-1]=1 #set to 1 if the node i is connected to the connected_nodes; -1 to adjust to 0-based index
+    
+    return adj_matrix
+
+
+def print_array(in_array):
+    Nrow=in_array.shape[0] #shape returns (row,col)
+    print("---Adjacency Matrix---")
+    for i in range (0, Nrow):
+        print("Node/Row {:d}".format(i+1), ": ", (in_array[:][i]) )
+    return
+
+
+
+#--------------------------------------------
+#Two HFs for DFS
+def is_tobe_suspended(visited, adj_matrix, node, next_node):
+    status=False
+    node=node-1
+    connected_node= np.transpose((adj_matrix[node,:]>=1).nonzero()) #returns tuples of indeces where entries are 1
+    for indx,value in enumerate(connected_node):
+        if value+1 not in visited and value+1 not in [next_node]:
+            status=True
+
+
+    return status
+    
+
+def get_next_unvisited(adj_matrix, node):
+    node=node-1
+    connected_node= np.transpose((adj_matrix[node,:]>=1).nonzero()) #returns tuples of indeces where entries are 1
+    unvisited=[]
+    for indx,value in enumerate(connected_node):
+        if value+1 not in visited:
+            # unvisited=[node+1, value[0]+1]
+            unvisited=[value[0]+1]
+
+            return unvisited
+
+
+    return unvisited
+
+
+#--------------------------------------------
+#HF count the number of rows with sum>0, i.e., the nodes that are connected
+def num_connected_nodes(adj_matrix):
+    count=0
+    discon_nodes=[]
+    for i in range(0, adj_matrix.shape[0]):
+        if adj_matrix[:][i].sum()>0:
+            count+=1
+        if adj_matrix[:][i].sum()==0:
+             discon_nodes+=[i+1]
+            
+    return count, discon_nodes
+        
+
+#--------------------------------------------
+#HF plot the graph based on the adj matrix
+def plot_graph_adjmat(adj_matrix):
+    plt.close('all') #close all previous figures 
+    dim=len(adj_matrix) #square 
+    newindex={}
+    
+    # shift the index label by 1
+    for i in range(0, dim+1):
+        newindex[i]=i+1
+    plt.figure(1)
+
+    G = nx.from_numpy_matrix(np.array(adj_matrix))
+    G= nx.relabel_nodes(G, newindex)
+    nx.draw(G, with_labels=True) 
+
+
+
+
+#HF  draw the DFS path
+def draw_DFS_path(visited):
+    plt.figure(2)
+    G2 = nx.path_graph(visited)
+    nx.draw(G2, with_labels=True)
+    plt.text(0, 0, "DFS PATH") 
+#--------------------------------------------
+
+#HF default graph
+def default_adj_matrix():
+    adj_matrix=np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]])
+    return adj_matrix
+
+
+
+#--------------------------------------------
+#driver function
+adj_matrix=[]
+
+visited=[]
+stack_susp=[] #list
+nextnode=[]
+count=0
+
+
+#graph input:
+user_i=input("Enter adjacency matrix: Enter 1 to use the default; Enter 2 to input a custom matrix:  ")
+if isInt(user_i)==True and int(user_i)==1:
+    adj_matrix=default_adj_matrix()
+else:
+    adj_matrix=build_adj_matrix()
+
+
+#print graph
+print_array(adj_matrix)
+plot_graph_adjmat(adj_matrix)
+
+
+
+#disconnected nodes
+conn_num, discon_nodes=num_connected_nodes(adj_matrix)
+
+
+#DFS start node
+user_i=input("Enter START node for DFS:  ")
+if isInt(user_i)==True and int(user_i) not in  discon_nodes:
+    curr_node=int(user_i)
+else:
+    curr_node=1 #START At 1 by default
+
+if int(user_i)  in  discon_nodes:
+    print("-------------------------------------------------------------------------",count)
+    print("The node you entered is disconnected! Cannot traverse. Defaulting to node 1")
+    print("-------------------------------------------------------------------------",count)
+
+
+#perform DFS
+while len(visited)<conn_num:
+    print("---------------",count)
+    print("Iteration: ", count)
+    print("Current: ", curr_node)
+
+    nextnode= get_next_unvisited(adj_matrix, curr_node)
+    
+    
+    if curr_node not in visited:
+        visited+=[curr_node]
+
+    if nextnode!=[]:
+        # visited+=nextnode
+        print("Next: ", nextnode)
+        if is_tobe_suspended(visited, adj_matrix, curr_node, nextnode)==True:
+           stack_susp= push_stack_list(stack_susp, curr_node)
+
+        curr_node=nextnode[0]
+
+    print("VISITED: ", visited)
+    print("STACK: ", stack_susp)
+    
+
+    if nextnode==[] and check_empty_stack_list(stack_susp)==False:
+        stack_susp, nextnode=pop_stack_list(stack_susp)
+        curr_node=nextnode
+
+    count+=1
+
+
+draw_DFS_path(visited) # print DFS/visited nodes
+
+
+
